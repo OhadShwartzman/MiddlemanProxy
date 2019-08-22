@@ -1,0 +1,4 @@
+
+MAX_PACKET_SIZE = 2048
+DEBUG = True
+PROXY_RUN = True
