@@ -1,7 +1,7 @@
-#MIDDLEMAN Proxy
+# MiddleMan Proxy
 In this repository you may find my implementation of a rather basic proxy. 
 
-## HOW TO USE:
+## How to use:
     Currently not relevant, since I have not yet made a module which would connect everything together. will be updated
 
 ## TODO:
