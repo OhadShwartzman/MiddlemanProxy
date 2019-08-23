@@ -38,5 +38,6 @@ class Parser(threading.Thread):
             
             for packet in self.queue:
                 print("{} : {}".format(packet[PACKET_IP_INDEX], packet[PACKET_HEX_INDEX]))
+                self.queue.remove(packet)
 
             self.lock.release() 
