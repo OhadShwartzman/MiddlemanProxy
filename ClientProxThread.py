@@ -1,6 +1,8 @@
 import threading
 import socket
 import config
+import Databuilder
+import ProxServerThread
 
 class ClientReader(threading.Thread):
     '''
@@ -8,7 +10,7 @@ class ClientReader(threading.Thread):
         Send the messages sent from the client to a parser and simply pass the messages to another thread which will
         send them to the actual server.
     '''
-    def __init__(self, host_addr, port, parser_queue, queue_condition):
+    def __init__(self, client_socket, client_address, parser_queue, queue_condition):
         '''
             This function is the overloaded constructor of the class Thread. It will run as a seperate thread.
             It will listen to and connect to the client
@@ -21,39 +23,55 @@ class ClientReader(threading.Thread):
         self.queue = parser_queue
         self.q_lock = queue_condition
 
-        listening_socket = socket.socket(AF_INET, socket.SOCK_STREAM)
-
-        # Will prevent bugs where the socket is already in use, etc
-        listening_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        listening_socket.bind((host_addr, port))
-        listening_socket.listen(1) # we're just looking for 1 client
-
-        self.client_port = port
-        self.client_socket, self.client_address = listening_socket.accept() # Now we got the client!
-        self.server_socket = None # Will be defined in the future. 
+        self.client_socket = client_socket
+        self.client_address = client_address
+        self.server_thread = None
+        self.running = True
 
     def run(self):
         '''
             This function is the overloaded function from the function threading.Thread.run.
         '''
-        while config.PROXY_RUN:
-            client_data = self.client_socket.recv(config.MAX_PACKET_SIZE)
+        while self.running:
+            try:
+                client_data = self.client_socket.recv(config.MAX_PACKET_SIZE)
+            except:
+                break
             if client_data:
                 '''This segment will get hold of the shared queue, add it's message, notify the parser thread and then
                    It will release the queue. '''
+                http_request = Databuilder.HttpData(client_data)
+                '''
                 self.q_lock.acquire()
-                self.queue.append((self.client_address, client_data.hex()))
+                self.queue.append((self.client_address, http_request))
                 self.q_lock.notifyAll()
-                self.q_lcok.release()
+                self.q_lock.release()
+                '''
                 # Pass the data on to the server.
-                self.server_socket.sendall(client_data)
-            self.client_socket.close()
+                domain = http_request.target_domain
 
+                # If connection with this server has not been yet initiallized, open a thread of communication with this
+                # server, set it's socket to be ours and start it.
+                if not self.server_thread or not self.server_thread.isAlive():
+                    self.server_thread = ProxServerThread.ServerReader(socket.gethostbyname(domain), http_request.target_port, self.queue, self.q_lock)
+                    self.server_thread.set_client_socket(self.client_socket)
+                    self.server_thread.start()
 
-    # SETTER FOR FIELD 'server_socket' important for communicating with the server.
-    def set_server_socket(self, server_socket):
-        self.server_socket = server_socket
+                    print("new domain")
+                    print(domain)
+                    print(http_request.target_port)
+                self.server_thread.get_server_socket().sendall(client_data)
+
+        # Wait for each server thread to stop, then close the socket
+        if self.server_thread:
+            self.server_thread.stop_thread()
+            self.server_thread.join()
+        
+        self.client_socket.close()
 
     # GETTER FOR FIELD 'client_socket'
     def get_client_socket(self):
         return self.client_socket
+
+    def stop_thread(self):
+        self.running = False

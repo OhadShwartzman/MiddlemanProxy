@@ -23,19 +23,24 @@ class ServerReader(threading.Thread):
         
         self.server_port = server_port
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.settimeout(1000)
         self.client_socket = None # we will know in the future
 
         self.server_socket.connect((server_address, server_port))
+        self.running = True
 
     def run(self):
-        while config.PROXY_RUN:
-            server_data = self.server_socket.recv(config.MAX_PACKET_SIZE)
+        while self.running:
+            try:
+                server_data = self.server_socket.recv(config.MAX_PACKET_SIZE)
+            except:
+                break
             if server_data:
-
+                '''
                 self.q_lock.acquire()
-                self.queue.append((self.server_address, server_data.hex()))
+                self.queue.append((self.server_address, server_data))
                 self.q_lock.notifyAll()
-
+                self.q_lock.release()'''
                 self.client_socket.sendall(server_data)
         self.server_socket.close()
 
@@ -46,3 +51,6 @@ class ServerReader(threading.Thread):
     # GETTER FOR FIELD 'server_socket'
     def get_server_socket(self):
         return self.server_socket
+
+    def stop_thread(self):
+        self.running = False

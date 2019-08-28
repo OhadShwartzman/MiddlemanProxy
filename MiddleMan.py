@@ -7,7 +7,7 @@ import config
 
 class MiddleMan(threading.Thread):
 
-    def __init__(self, host_port, host_address, server_port, server_address):
+    def __init__(self, host_port, host_address):
         '''
             This function is the constructor for the class Middleman, it will overload the constructor of the class
             threading.Thread, but still call it since we need to construct the 'Thread' part of the object.
@@ -22,12 +22,11 @@ class MiddleMan(threading.Thread):
         
         self.parser_thread = Parser.Parser(self.shared_queue, self.queue_lock)
 
-        self.client_connection = ClientProxThread.ClientReader(host_addr, host_port, self.shared_queue, self.queue_lock)
-        self.server_connection = ProxServerThread.ServerReader(server_address, server_port, self.shared_queue, self.queue_lock)
+        self.host_port = host_port
+        self.host_address = host_address
 
-        # We need to cross the sockets between the connections - since the one does not know currently of the other
-        self.client_connection.set_server_socket(self.server_connection.get_server_socket())
-        self.server_connection.set_client_socket(self.client_connection.get_client_socket())
+        self.client_threads = []
+        self.running = True
 
     def run(self):
         '''
@@ -38,13 +37,29 @@ class MiddleMan(threading.Thread):
             output:
                 none
         '''
-        self.client_connection.start()
-        self.server_connection.start()
         self.parser_thread.start()
         
-        self.client_connection.join()
-        self.server_connection.join()
-        self.parser_thread.join()
 
+        listening_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        # Will prevent bugs where the socket is already in use, etc
+        listening_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        listening_socket.bind((self.host_address, self.host_port))
+        listening_socket.listen(5)
+        
+        while self.running:
+            client_socket, client_address = listening_socket.accept() # Now we got the client!
+            new_connection = ClientProxThread.ClientReader(client_socket, client_address, self.shared_queue, self.queue_lock)
+            self.client_threads.append(new_connection)
+            new_connection.start()
+
+        self.parser_thread.stop_thread()
+        self.parser_thread.join()
+        for connection in self.client_threads:
+            connection.stop_thread()
+            connection.join()
+
+    def stop_thread(self):
+        self.running = False
 
     

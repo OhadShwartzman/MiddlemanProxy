@@ -17,6 +17,7 @@ class Parser(threading.Thread):
 
         self.queue = parsing_queue
         self.lock = parsing_lock
+        self.running = True
     
     def run(self):
         '''
@@ -27,17 +28,17 @@ class Parser(threading.Thread):
         '''
 
         PACKET_IP_INDEX = 0
-        PACKET_HEX_INDEX = 1
-
+        PACKET_DATA_INDEX = 1
         # Run while the proxy is running.
-        while config.DEBUG:
-           self.lock.acquire()
-           while not self.queue:
-               # Wait to be notified of a new packet in the queue
-               self.lock.wait()
-            
+        while config.DEBUG and self.running:
+            self.lock.acquire()
+            while not self.queue:
+                # Wait to be notified of a new packet in the queue
+                self.lock.wait()
             for packet in self.queue:
-                print("{} : {}".format(packet[PACKET_IP_INDEX], packet[PACKET_HEX_INDEX]))
+                print("{} : {}".format(packet[PACKET_IP_INDEX], packet[PACKET_DATA_INDEX]))
                 self.queue.remove(packet)
-
             self.lock.release() 
+
+    def stop_thread(self):
+        self.running = False
