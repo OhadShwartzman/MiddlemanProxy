@@ -16,7 +16,7 @@ class ServerReader(threading.Thread):
         '''
         threading.Thread.__init__(self)
 
-        self.server_address = server_address # For passing on to the parser later
+        self.server_address = socket.gethostbyname(server_address) # For passing on to the parser later
 
         self.queue = parser_queue
         self.q_lock = queue_lock
@@ -26,7 +26,7 @@ class ServerReader(threading.Thread):
         self.server_socket.settimeout(1000)
         self.client_socket = None # we will know in the future
 
-        self.server_socket.connect((server_address, server_port))
+        self.server_socket.connect((self.server_address, self.server_port))
         self.running = True
 
     def run(self):

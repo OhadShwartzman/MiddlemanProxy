@@ -2,7 +2,6 @@ import threading
 import socket
 import config
 import Databuilder
-import ProxServerThread
 
 class ClientReader(threading.Thread):
     '''
@@ -10,7 +9,7 @@ class ClientReader(threading.Thread):
         Send the messages sent from the client to a parser and simply pass the messages to another thread which will
         send them to the actual server.
     '''
-    def __init__(self, client_socket, client_address, parser_queue, queue_condition):
+    def __init__(self, client_socket, client_address, parser_queue, queue_condition, server_type):
         '''
             This function is the overloaded constructor of the class Thread. It will run as a seperate thread.
             It will listen to and connect to the client
@@ -27,6 +26,7 @@ class ClientReader(threading.Thread):
         self.client_address = client_address
         self.server_thread = None
         self.running = True
+        self.server_type = server_type
 
     def run(self):
         '''
@@ -53,7 +53,7 @@ class ClientReader(threading.Thread):
                 # If connection with this server has not been yet initiallized, open a thread of communication with this
                 # server, set it's socket to be ours and start it.
                 if not self.server_thread or not self.server_thread.isAlive():
-                    self.server_thread = ProxServerThread.ServerReader(socket.gethostbyname(domain), http_request.target_port, self.queue, self.q_lock)
+                    self.server_thread = self.server_type(domain, http_request.target_port, self.queue, self.q_lock)
                     self.server_thread.set_client_socket(self.client_socket)
                     self.server_thread.start()
 

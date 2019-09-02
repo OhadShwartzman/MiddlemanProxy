@@ -37,16 +37,25 @@ class HttpData:
         DEFAULT_PORT = 80
         DOMAIN_END = '/'
         NOT_FOUND = -1
+        
+        HTTPS_PROTOCOL = "://"
+        HTTPS_DEFAULT_PORT = 443
 
         protocol_loc = url.find(PROTOCOL_DOMAIN_SEPERATOR)
+        protocol = None
         if not protocol_loc == NOT_FOUND:
             url = url[protocol_loc + len(PROTOCOL_DOMAIN_SEPERATOR):] # We don't need the protocol in the url.
-        
+            protocol = url[protocol_loc:]
+
         port_loc = url.find(PORT_SEPERATOR)
 
         port = DEFAULT_PORT
+        if protocol is HTTPS_PROTOCOL:
+            port = HTTPS_DEFAULT_PORT
+
         if not port_loc == NOT_FOUND:
             url, port = url.split(PORT_SEPERATOR)
+            port = port.replace(DOMAIN_END, "")
             port = int(port)
 
         domain_end_loc = url.find(DOMAIN_END)
@@ -54,8 +63,3 @@ class HttpData:
         if not domain_end_loc == NOT_FOUND:
             domain = url[:domain_end_loc]
         return (domain, port)
-
-
-        # Go over the rest of the lines, read the headers and put them in another container.
-        for line in text_lines[1:]:
-            line.replace()

@@ -1,4 +1,5 @@
 
 MAX_PACKET_SIZE = 2048
 DEBUG = False
-PROXY_RUN = True
+CERT_FILE = "../cert.pem"
+KEY_FILE = "../key.pem"

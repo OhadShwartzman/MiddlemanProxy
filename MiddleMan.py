@@ -49,7 +49,7 @@ class MiddleMan(threading.Thread):
         
         while self.running:
             client_socket, client_address = listening_socket.accept() # Now we got the client!
-            new_connection = ClientProxThread.ClientReader(client_socket, client_address, self.shared_queue, self.queue_lock)
+            new_connection = ClientProxThread.ClientReader(client_socket, client_address, self.shared_queue, self.queue_lock, ProxServerThread.ServerReader)
             self.client_threads.append(new_connection)
             new_connection.start()
 
