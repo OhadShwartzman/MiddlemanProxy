@@ -53,13 +53,12 @@ class MiddleMan(threading.Thread):
             self.client_threads.append(new_connection)
             new_connection.start()
 
+        listening_socket.close()
         self.parser_thread.stop_thread()
-        self.parser_thread.join()
-        for connection in self.client_threads:
-            connection.stop_thread()
-            connection.join()
 
     def stop_thread(self):
         self.running = False
+        for connection in self.client_threads:
+            connection.stop_thread()
 
     

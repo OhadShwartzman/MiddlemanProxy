@@ -9,7 +9,7 @@ class HttpData:
         self.build_data()
     
     def build_data(self):
-        text_data = self.data.decode('utf-8')
+        text_data = self.data.decode('utf-8', errors='ignore')
 
         text_lines = text_data.split('\r\n')
         # Handle the first line of the HTTP request, which is usually the most important one.
@@ -49,10 +49,7 @@ class HttpData:
 
         port_loc = url.find(PORT_SEPERATOR)
 
-        port = DEFAULT_PORT
-        if protocol is HTTPS_PROTOCOL:
-            port = HTTPS_DEFAULT_PORT
-
+        port = None
         if not port_loc == NOT_FOUND:
             url, port = url.split(PORT_SEPERATOR)
             port = port.replace(DOMAIN_END, "")

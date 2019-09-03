@@ -35,38 +35,28 @@ class ClientReader(threading.Thread):
         while self.running:
             try:
                 client_data = self.client_socket.recv(config.MAX_PACKET_SIZE)
-            except:
-                break
-            if client_data:
-                '''This segment will get hold of the shared queue, add it's message, notify the parser thread and then
-                   It will release the queue. '''
-                http_request = Databuilder.HttpData(client_data)
-                '''
-                self.q_lock.acquire()
-                self.queue.append((self.client_address, http_request))
-                self.q_lock.notifyAll()
-                self.q_lock.release()
-                '''
-                # Pass the data on to the server.
-                domain = http_request.target_domain
+                if client_data:
+                    '''This segment will get hold of the shared queue, add it's message, notify the parser thread and then
+                    It will release the queue. '''
+                    http_request = Databuilder.HttpData(client_data)
+                    '''
+                    self.q_lock.acquire()
+                    self.queue.append((self.client_address, http_request))
+                    self.q_lock.notifyAll()
+                    self.q_lock.release()
+                    '''
+                    # Pass the data on to the server.
+                    domain = http_request.target_domain
 
-                # If connection with this server has not been yet initiallized, open a thread of communication with this
-                # server, set it's socket to be ours and start it.
-                if not self.server_thread or not self.server_thread.isAlive():
-                    self.server_thread = self.server_type(domain, http_request.target_port, self.queue, self.q_lock)
-                    self.server_thread.set_client_socket(self.client_socket)
-                    self.server_thread.start()
-
-                    print("new domain")
-                    print(domain)
-                    print(http_request.target_port)
-                self.server_thread.get_server_socket().sendall(client_data)
-
-        # Wait for each server thread to stop, then close the socket
-        if self.server_thread:
-            self.server_thread.stop_thread()
-            self.server_thread.join()
-        
+                    # If connection with this server has not been yet initiallized, open a thread of communication with this
+                    # server, set it's socket to be ours and start it.
+                    if not self.server_thread or not self.server_thread.isAlive():
+                        self.server_thread = self.server_type(domain, http_request.target_port, self.queue, self.q_lock, self.client_socket)
+                        self.server_thread.start()
+                    self.server_thread.get_server_socket().sendall(client_data)
+            except Exception as e:
+                print(e)
+                self.stop_thread()
         self.client_socket.close()
 
     # GETTER FOR FIELD 'client_socket'
@@ -75,3 +65,5 @@ class ClientReader(threading.Thread):
 
     def stop_thread(self):
         self.running = False
+        if self.server_thread:
+            self.server_thread.stop_thread()
